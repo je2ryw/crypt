@@ -1,8 +1,10 @@
 package aws
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/kms"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -45,17 +47,18 @@ func (k *KMS) Encrypt(plaintext []byte) ([]byte, error) {
 		logrus.Debug("Using default AWS API credentials profile")
 	}
 
-	awsSession, awsConfig, err := SessionConfig(k.region, k.profile)
+	ctx := context.Background()
+	awsConfig, err := Config(ctx, k.region, k.profile)
 	if err != nil {
 		return nil, err
 	}
 
-	svc := kms.New(awsSession, awsConfig)
+	svc := kms.NewFromConfig(awsConfig)
 	input := &kms.EncryptInput{
 		Plaintext: plaintext,
 		KeyId:     aws.String(k.key),
 	}
-	output, err := svc.Encrypt(input)
+	output, err := svc.Encrypt(ctx, input)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -73,16 +76,17 @@ func (k *KMS) Decrypt(ciphertext []byte) ([]byte, error) {
 		logrus.Debug("Using default AWS API credentials profile")
 	}
 
-	awsSession, _, err := SessionConfig(k.region, k.profile)
+	ctx := context.Background()
+	awsConfig, err := Config(ctx, k.region, k.profile)
 	if err != nil {
 		return nil, err
 	}
 
-	svc := kms.New(awsSession)
+	svc := kms.NewFromConfig(awsConfig)
 	input := &kms.DecryptInput{
 		CiphertextBlob: ciphertext,
 	}
-	output, err := svc.Decrypt(input)
+	output, err := svc.Decrypt(ctx, input)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

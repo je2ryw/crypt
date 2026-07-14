@@ -1,29 +1,26 @@
 package aws
 
 import (
+	"context"
+
 	"github.com/VirtusLab/go-extended/pkg/errors"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 const (
 	// DefaultProfile is the default profile to be used when loading configuration
 	// from the config files if another profile name is not provided.
-	DefaultProfile = session.DefaultSharedConfigProfile
+	DefaultProfile = "default"
 )
 
-// SessionConfig returns AWS API client session and config with given region and profile
-func SessionConfig(region, profile string) (*session.Session, *aws.Config, error) {
-	// Environment variables can be also used, see: /vendor/github.com/aws/aws-sdk-go/aws/session/env_config.go
-	config := aws.NewConfig().
-		WithRegion(region).
-		WithCredentialsChainVerboseErrors(true)
+// Config returns AWS API client config with given region and profile
+func Config(ctx context.Context, region, profile string) (aws.Config, error) {
+	// Environment variables can be also used, see: https://docs.aws.amazon.com/sdkref/latest/guide/settings-reference.html
+	awsConfig, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+		config.WithSharedConfigProfile(profile),
+	)
 
-	awsSession, err := session.NewSessionWithOptions(session.Options{
-		Profile:           profile,
-		Config:            *config,
-		SharedConfigState: session.SharedConfigEnable,
-	})
-
-	return awsSession, config, errors.Wrap(err)
+	return awsConfig, errors.Wrap(err)
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/VirtusLab/crypt/test/fake"
@@ -45,4 +46,33 @@ func TestEncryptedDataStructure(t *testing.T) {
 	decrypted, err := base64.RawURLEncoding.DecodeString(string(dataToDecrypt))
 	require.NoError(t, err, "encrypted data should be encoded with base64")
 	assert.Equal(t, secret, string(decrypted))
+}
+
+func TestDecryptPreMigrationCiphertext(t *testing.T) {
+	ciphertext, err := os.ReadFile("testdata/pre-migration-ciphertext.crypt")
+	require.NoError(t, err)
+	crypto := KeyVault{client: fake.KeyVaultAPIClient{}}
+
+	decrypted, err := crypto.Decrypt(ciphertext)
+
+	require.NoError(t, err)
+	assert.Equal(t, "top secret token", string(decrypted))
+	assert.Equal(t, "https://key-vault-url.com", crypto.vaultURL)
+	assert.Equal(t, "key-vault-key", crypto.key)
+	assert.Equal(t, "das87d8asgd", crypto.keyVersion)
+}
+
+func TestEmptyKeyVersionUsesLatest(t *testing.T) {
+	crypto := KeyVault{
+		vaultURL: "https://key-vault-url.com",
+		key:      "key-vault-key",
+		client:   fake.KeyVaultAPIClient{},
+	}
+
+	encrypted, err := crypto.Encrypt([]byte("top secret token"))
+	require.NoError(t, err)
+	decrypted, err := crypto.Decrypt(encrypted)
+
+	require.NoError(t, err)
+	assert.Equal(t, "top secret token", string(decrypted))
 }
