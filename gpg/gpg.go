@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"time"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -79,35 +78,8 @@ func (p *GPG) encryptWithKey(plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read public key")
 	}
-	allowExpiredPrivateKeyForEncryption(entity)
 
 	return p.encrypt(plaintext, openpgp.EntityList{entity})
-}
-
-func allowExpiredPrivateKeyForEncryption(entity *openpgp.Entity) {
-	// A private key ring supplied explicitly for encryption is trusted key material.
-	// Ignore expiration for that compatibility path; revocation checks remain active.
-	if entity.PrivateKey == nil {
-		return
-	}
-	if _, valid := entity.EncryptionKey(time.Now()); valid {
-		return
-	}
-	if entity.SelfSignature != nil {
-		entity.SelfSignature.KeyLifetimeSecs = nil
-	}
-	for _, identity := range entity.Identities {
-		if identity.SelfSignature == nil {
-			continue
-		}
-		identity.SelfSignature.KeyLifetimeSecs = nil
-	}
-	for i := range entity.Subkeys {
-		if entity.Subkeys[i].Sig == nil {
-			continue
-		}
-		entity.Subkeys[i].Sig.KeyLifetimeSecs = nil
-	}
 }
 
 func (p *GPG) encrypt(plaintext []byte, entities []*openpgp.Entity) ([]byte, error) {
