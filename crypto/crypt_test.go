@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -27,7 +26,7 @@ func encryptDecryptSingleFile(crypt Crypt, inputPath string) (string, error) {
 		return "", err
 	}
 
-	result, err := ioutil.ReadFile(inputPath + ".decrypted")
+	result, err := os.ReadFile(inputPath + ".decrypted")
 	if err != nil {
 		return "", err
 	}
@@ -40,7 +39,7 @@ func TestCrypt_EncryptDecryptFile(t *testing.T) {
 
 	inputFile := "test.txt"
 	expected := "top secret token"
-	err := ioutil.WriteFile(inputFile, []byte(expected), 0644)
+	err := os.WriteFile(inputFile, []byte(expected), 0644)
 	require.NoError(t, err, "Can't write plaintext file")
 	defer func() { _ = os.Remove(inputFile) }()
 

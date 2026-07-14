@@ -143,7 +143,7 @@ func readEntity(file string) (*openpgp.Entity, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	block, err := armor.Decode(f)
 	if err != nil {
 		return nil, err
