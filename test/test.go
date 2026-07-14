@@ -1,7 +1,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/VirtusLab/crypt/crypto"
@@ -22,7 +21,7 @@ func EncryptAndDecryptFile(encrypt, decrypt crypto.Crypt, inputPath string) (str
 		return "", err
 	}
 
-	result, err := ioutil.ReadFile(inputPath + ".decrypted")
+	result, err := os.ReadFile(inputPath + ".decrypted")
 	if err != nil {
 		return "", err
 	}

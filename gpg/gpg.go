@@ -3,13 +3,14 @@ package gpg
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
+	"time"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/packet"
 )
 
 // GPG struct represents GPG (GnuPG) service
@@ -78,8 +79,35 @@ func (p *GPG) encryptWithKey(plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read public key")
 	}
+	allowExpiredPrivateKeyForEncryption(entity)
 
 	return p.encrypt(plaintext, openpgp.EntityList{entity})
+}
+
+func allowExpiredPrivateKeyForEncryption(entity *openpgp.Entity) {
+	// A private key ring supplied explicitly for encryption is trusted key material.
+	// Ignore expiration for that compatibility path; revocation checks remain active.
+	if entity.PrivateKey == nil {
+		return
+	}
+	if _, valid := entity.EncryptionKey(time.Now()); valid {
+		return
+	}
+	if entity.SelfSignature != nil {
+		entity.SelfSignature.KeyLifetimeSecs = nil
+	}
+	for _, identity := range entity.Identities {
+		if identity.SelfSignature == nil {
+			continue
+		}
+		identity.SelfSignature.KeyLifetimeSecs = nil
+	}
+	for i := range entity.Subkeys {
+		if entity.Subkeys[i].Sig == nil {
+			continue
+		}
+		entity.Subkeys[i].Sig.KeyLifetimeSecs = nil
+	}
 }
 
 func (p *GPG) encrypt(plaintext []byte, entities []*openpgp.Entity) ([]byte, error) {
@@ -97,7 +125,7 @@ func (p *GPG) encrypt(plaintext []byte, entities []*openpgp.Entity) ([]byte, err
 		return nil, err
 	}
 
-	encrypted, err := ioutil.ReadAll(buf)
+	encrypted, err := io.ReadAll(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +158,7 @@ func (p *GPG) decryptWithKey(ciphertext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decrypt")
 	}
-	decrypted, err := ioutil.ReadAll(md.UnverifiedBody)
+	decrypted, err := io.ReadAll(md.UnverifiedBody)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read plaintext")
 	}

@@ -4,7 +4,6 @@
 package gcp
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -33,7 +32,7 @@ func TestEncryptDecryptWithGCP(t *testing.T) {
 
 	inputFile := "test.txt"
 	expected := "top secret token"
-	err := ioutil.WriteFile(inputFile, []byte(expected), 0644)
+	err := os.WriteFile(inputFile, []byte(expected), 0644)
 	defer os.Remove(inputFile)
 	require.NoError(t, err, "Can't write plaintext file")
 

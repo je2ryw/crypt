@@ -5,7 +5,6 @@ package azure
 
 import (
 	"github.com/VirtusLab/go-extended/pkg/files"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -39,7 +38,7 @@ func TestEncryptDecryptFileWithHeader(t *testing.T) {
 
 	inputFile := "test.txt"
 	secret := "top secret token"
-	err = ioutil.WriteFile(inputFile, []byte(secret), 0644)
+	err = os.WriteFile(inputFile, []byte(secret), 0644)
 	defer func() { _ = os.Remove(inputFile) }()
 	require.NoError(t, err, "Can't write plaintext file")
 

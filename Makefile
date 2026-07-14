@@ -9,7 +9,6 @@ include $(config)
 
 # Set POSIX sh for maximum interoperability
 SHELL := /bin/sh
-PATH  := $(GOPATH)/bin:$(PATH)
 
 # Set an output prefix, which is the local directory if not specified
 PREFIX?=$(shell pwd)

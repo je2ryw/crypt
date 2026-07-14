@@ -8,9 +8,8 @@ import (
 	u "net/url"
 	"strings"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/net/context/ctxhttp"
 )
 
 // source code taken from https://github.com/strothj/hkp/blob/master/hkp.go
@@ -81,7 +80,11 @@ func (c *Client) GetKeysByID(ctx context.Context, keyID *KeyID) (openpgp.EntityL
 		Path:     baseRequestPath,
 		RawQuery: v.Encode(),
 	}
-	resp, err := ctxhttp.Get(ctx, c.client, url.String())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

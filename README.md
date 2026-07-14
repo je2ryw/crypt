@@ -50,7 +50,7 @@ For more binaries please **visit the [Releases Page](https://github.com/VirtusLa
 
 #### Via Go
 
-    go get github.com/VirtusLab/crypt
+    go install github.com/VirtusLab/crypt@latest
     
 #### Via Homebrew
 
@@ -92,16 +92,11 @@ Please find usage examples below:
 
 ## Development
 
-    export GOPATH=$HOME/go
-    export PATH=$PATH:$GOPATH/bin
-
-    mkdir -p $GOPATH/src/github.com/VirtusLab
-    cd $GOPATH/src/github.com/VirtusLab
     git clone git@github.com:VirtusLab/crypt.git
     cd crypt
-
-    go get -u github.com/golang/dep/cmd/dep
     make all
+
+Development requires Go 1.26.5.
 
 ### Testing
 
