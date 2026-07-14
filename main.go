@@ -9,6 +9,7 @@ import (
 	"github.com/VirtusLab/crypt/constants"
 	"github.com/VirtusLab/crypt/crypto"
 	"github.com/VirtusLab/crypt/gcp"
+	"github.com/VirtusLab/crypt/oci"
 	"github.com/VirtusLab/crypt/version"
 
 	"github.com/VirtusLab/crypt/gpg"
@@ -47,6 +48,15 @@ var (
 	awsRegion string
 	// The AWS API credentials profile to use
 	awsProfile string
+
+	// OCI KMS key OCID and vault crypto endpoint
+	ociKeyID          string
+	ociCryptoEndpoint string
+	ociKeyVersion     string
+	ociProfile        string
+	ociConfigFile     string
+	ociAuth           string
+	ociAlgorithm      string
 
 	// GPG Public Key (armored)
 	gpgPublicKey string
@@ -271,6 +281,67 @@ func encrypt() cli.Command {
 				}...),
 				Action: func(c *cli.Context) error {
 					return encryptAction(c, crypto.New(gcp.New(gcpProject, gcpLocation, gcpKeyring, gcpKey)))
+				},
+			},
+			{
+				Name:  "oci",
+				Usage: "Encrypts files and/or strings with OCI KMS",
+				Flags: append(encryptBaseFlags, []cli.Flag{
+					cli.StringFlag{
+						Name:        "key-id",
+						Value:       "",
+						Usage:       "the OCI KMS key OCID",
+						Destination: &ociKeyID,
+						EnvVar:      "OCI_CRYPT_KEY_ID",
+						Required:    true,
+					},
+					cli.StringFlag{
+						Name:        "crypto-endpoint",
+						Value:       "",
+						Usage:       "the OCI vault crypto endpoint URL",
+						Destination: &ociCryptoEndpoint,
+						EnvVar:      "OCI_CRYPT_CRYPTO_ENDPOINT",
+						Required:    true,
+					},
+					cli.StringFlag{
+						Name:        "key-version",
+						Value:       "",
+						Usage:       "the OCI KMS key version OCID",
+						Destination: &ociKeyVersion,
+					},
+					cli.StringFlag{
+						Name:        "profile",
+						Value:       oci.DefaultProfile,
+						Usage:       "the OCI configuration profile",
+						Destination: &ociProfile,
+						EnvVar:      "OCI_CLI_PROFILE",
+					},
+					cli.StringFlag{
+						Name:        "config-file",
+						Value:       "",
+						Usage:       "the OCI configuration file path",
+						Destination: &ociConfigFile,
+					},
+					cli.StringFlag{
+						Name:        "auth",
+						Value:       oci.DefaultAuthType,
+						Usage:       "the OCI authentication type (api_key, instance_principal, resource_principal, or security_token)",
+						Destination: &ociAuth,
+						EnvVar:      "OCI_CLI_AUTH",
+					},
+					cli.StringFlag{
+						Name:        "algorithm",
+						Value:       oci.DefaultAlgorithm,
+						Usage:       "the OCI KMS algorithm (AES_256_GCM, RSA_OAEP_SHA_256, or RSA_OAEP_SHA_1)",
+						Destination: &ociAlgorithm,
+					},
+				}...),
+				Action: func(c *cli.Context) error {
+					kms, err := newOCIKMS(c)
+					if err != nil {
+						return err
+					}
+					return encryptAction(c, crypto.New(kms))
 				},
 			},
 			{
@@ -505,6 +576,65 @@ func decrypt() cli.Command {
 				},
 			},
 			{
+				Name:  "oci",
+				Usage: "Decrypts files and/or strings with OCI KMS",
+				Flags: append(decryptBaseFlags, []cli.Flag{
+					cli.StringFlag{
+						Name:        "key-id",
+						Value:       "",
+						Usage:       "the OCI KMS key OCID (optional when ciphertext has a header)",
+						Destination: &ociKeyID,
+						EnvVar:      "OCI_CRYPT_KEY_ID",
+					},
+					cli.StringFlag{
+						Name:        "crypto-endpoint",
+						Value:       "",
+						Usage:       "the OCI vault crypto endpoint URL (optional when ciphertext has a header)",
+						Destination: &ociCryptoEndpoint,
+						EnvVar:      "OCI_CRYPT_CRYPTO_ENDPOINT",
+					},
+					cli.StringFlag{
+						Name:        "key-version",
+						Value:       "",
+						Usage:       "the OCI KMS key version OCID",
+						Destination: &ociKeyVersion,
+					},
+					cli.StringFlag{
+						Name:        "profile",
+						Value:       oci.DefaultProfile,
+						Usage:       "the OCI configuration profile",
+						Destination: &ociProfile,
+						EnvVar:      "OCI_CLI_PROFILE",
+					},
+					cli.StringFlag{
+						Name:        "config-file",
+						Value:       "",
+						Usage:       "the OCI configuration file path",
+						Destination: &ociConfigFile,
+					},
+					cli.StringFlag{
+						Name:        "auth",
+						Value:       oci.DefaultAuthType,
+						Usage:       "the OCI authentication type (api_key, instance_principal, resource_principal, or security_token)",
+						Destination: &ociAuth,
+						EnvVar:      "OCI_CLI_AUTH",
+					},
+					cli.StringFlag{
+						Name:        "algorithm",
+						Value:       oci.DefaultAlgorithm,
+						Usage:       "the OCI KMS algorithm (AES_256_GCM, RSA_OAEP_SHA_256, or RSA_OAEP_SHA_1)",
+						Destination: &ociAlgorithm,
+					},
+				}...),
+				Action: func(c *cli.Context) error {
+					kms, err := newOCIKMS(c)
+					if err != nil {
+						return err
+					}
+					return decryptAction(c, crypto.New(kms))
+				},
+			},
+			{
 				Name:  "gpg",
 				Usage: "Decrypts files and/or strings with GPG (GnuPG)",
 				Flags: append(encryptBaseFlags, []cli.Flag{
@@ -534,6 +664,22 @@ func decrypt() cli.Command {
 			},
 		},
 	}
+}
+
+func newOCIKMS(c *cli.Context) (*oci.KMS, error) {
+	algorithm := ""
+	if c.IsSet("algorithm") {
+		algorithm = ociAlgorithm
+	}
+	return oci.NewWithOptions(oci.Options{
+		KeyID:          ociKeyID,
+		KeyVersionID:   ociKeyVersion,
+		CryptoEndpoint: ociCryptoEndpoint,
+		Profile:        ociProfile,
+		ConfigFile:     ociConfigFile,
+		AuthType:       ociAuth,
+		Algorithm:      algorithm,
+	})
 }
 
 func decryptAction(c *cli.Context, crypt crypto.Crypt) error {

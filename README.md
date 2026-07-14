@@ -7,7 +7,7 @@
 
 <img src="/assets/crypt.png" width="250" height="198"/>
 
-Universal cryptographic tool with AWS KMS, GCP KMS and Azure Key Vault support.
+Universal cryptographic tool with AWS KMS, GCP KMS, Azure Key Vault and Oracle Cloud Infrastructure KMS support.
 
 * [Installation](README.md#installation)
   * [Binaries](README.md#binaries)
@@ -26,6 +26,7 @@ Provider        | Maturity
 AWS KMS         | `beta`
 Azure Key Vault | `beta`
 GCP KMS         | `alpha`
+OCI KMS         | `alpha`
 GPG (GnuPG)     | `alpha`
 
 ## Installation
@@ -60,7 +61,7 @@ For more binaries please **visit the [Releases Page](https://github.com/VirtusLa
 ## Usage
 
     NAME:
-       crypt - Universal cryptographic tool with AWS KMS, GCP KMS and Azure Key Vault support
+       crypt - Universal cryptographic tool with AWS KMS, GCP KMS, Azure Key Vault and OCI KMS support
 
     USAGE:
        crypt [global options] command [command options] [arguments...]
@@ -88,7 +89,24 @@ Please find usage examples below:
 - [Getting Started with AWS KMS](docs/getting-started-aws.md)
 - [Getting Started with Azure Key Vault](docs/getting-started-azure.md)
 - [Getting Started with Google GCP KMS](docs/getting-started-gcp.md)
+- [Getting Started with Oracle Cloud Infrastructure KMS](docs/getting-started-oci.md)
 - [Getting Started with GPG (GnuPG)](docs/getting-started-gpg.md)
+
+For example, encrypt a file with an OCI key and its per-vault crypto endpoint:
+
+```console
+crypt encrypt oci \
+    --in file.txt \
+    --out file.enc \
+    --key-id ocid1.key.oc1... \
+    --crypto-endpoint https://example-prefix-crypto.kms.ca-toronto-1.oraclecloud.com
+```
+
+OCI ciphertext produced by `crypt` contains a metadata header, so the key ID and endpoint can normally be omitted during decryption:
+
+```console
+crypt decrypt oci --in file.enc --out file.dec
+```
 
 ## Development
 

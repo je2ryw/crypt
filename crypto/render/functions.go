@@ -6,6 +6,7 @@ import (
 	"github.com/VirtusLab/crypt/aws"
 	"github.com/VirtusLab/crypt/azure"
 	"github.com/VirtusLab/crypt/gcp"
+	"github.com/VirtusLab/crypt/oci"
 )
 
 /*
@@ -17,6 +18,8 @@ TemplateFunctions provides template functions for render or the standard (text/t
   - decryptGCP - decrypts the data from inside of the template using GCP KMS, for best results use with ungzip and b64dec
   - encryptAzure - encrypts the data from inside of the template using Azure Key Vault, for best results use with gzip and b64enc
   - decryptAzure - decrypts the data from inside of the template using Azure Key Vault, for best results use with ungzip and b64dec
+  - encryptOCI - encrypts the data from inside of the template using OCI KMS, for best results use with gzip and b64enc
+  - decryptOCI - decrypts the data from inside of the template using OCI KMS, for best results use with ungzip and b64dec
 */
 func TemplateFunctions() template.FuncMap {
 	return template.FuncMap{
@@ -26,7 +29,29 @@ func TemplateFunctions() template.FuncMap {
 		"decryptGCP":   DecryptGCP,
 		"encryptAzure": EncryptAzure,
 		"decryptAzure": DecryptAzure,
+		"encryptOCI":   EncryptOCI,
+		"decryptOCI":   DecryptOCI,
 	}
+}
+
+// EncryptOCI encrypts plaintext using OCI KMS.
+func EncryptOCI(keyID, cryptoEndpoint, profile, plaintext string) ([]byte, error) {
+	oracle := oci.New(keyID, cryptoEndpoint, profile)
+	result, err := oracle.Encrypt([]byte(plaintext))
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// DecryptOCI decrypts ciphertext using OCI KMS.
+func DecryptOCI(keyID, cryptoEndpoint, profile, ciphertext string) (string, error) {
+	oracle := oci.New(keyID, cryptoEndpoint, profile)
+	result, err := oracle.Decrypt([]byte(ciphertext))
+	if err != nil {
+		return "", err
+	}
+	return string(result), nil
 }
 
 // EncryptAWS encrypts plaintext using AWS KMS
