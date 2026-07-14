@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.x
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Run build and check
+        run: make status build fmt vet test
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.x
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Verify tag matches VERSION.txt
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          version=$(cat VERSION.txt)
+          if [[ "$version" != "$GITHUB_REF_NAME" ]]; then
+            echo "::error::VERSION.txt ($version) does not match release tag ($GITHUB_REF_NAME)"
+            exit 1
+          fi
+      - name: Publish release
+        if: github.event_name == 'push'
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build snapshot
+        if: github.event_name == 'workflow_dispatch'
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --snapshot --clean
+      - name: Upload snapshot artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: crypt-snapshot-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error

@@ -1,0 +1,55 @@
+version: 2
+
+project_name: crypt
+
+builds:
+  - id: crypt
+    main: .
+    binary: crypt
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - >-
+        -w
+        -X github.com/VirtusLab/crypt/version.VERSION=v{{ .Version }}
+        -X github.com/VirtusLab/crypt/version.GITCOMMIT={{ .ShortCommit }}
+    goos:
+      - darwin
+      - freebsd
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - "386"
+      - arm
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: arm
+
+archives:
+  - formats:
+      - binary
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: git
+
+release:
+  draft: false
