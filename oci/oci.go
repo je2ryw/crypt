@@ -385,16 +385,19 @@ func isOversizedPayloadError(err error) bool {
 	if !ok || (serviceError.GetHTTPStatusCode() != 400 && serviceError.GetHTTPStatusCode() != 413) {
 		return false
 	}
+	if serviceError.GetHTTPStatusCode() == 413 {
+		return true
+	}
 	message := strings.ToLower(serviceError.GetMessage())
 	return strings.Contains(message, "too large") ||
-		strings.Contains(message, "maximum size") ||
-		(strings.Contains(message, "plaintext") && strings.Contains(message, "limit"))
+		(strings.Contains(message, "plaintext") &&
+			(strings.Contains(message, "size") || strings.Contains(message, "maximum") || strings.Contains(message, "limit")))
 }
 
 func init() {
-	// Keep the source prefix on a complete base64 quantum so its encoding is
-	// also a byte prefix of the complete encoded JSON header.
-	fileContentPrefix := []byte(`{"provider":"oci","crypt`)
+	// Include the fixed delimiter after the field name so the source prefix is
+	// a complete base64 quantum and remains a prefix after encoding.
+	fileContentPrefix := []byte(`{"provider":"oci","crypt":"`)
 	magicNumber = make([]byte, base64.RawURLEncoding.EncodedLen(len(fileContentPrefix)))
 	base64.RawURLEncoding.Encode(magicNumber, fileContentPrefix)
 }

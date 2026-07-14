@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/VirtusLab/crypt/test/fake"
@@ -70,6 +71,11 @@ func TestEncryptedDataStructureUsesResponseMetadataAndVerbatimPayload(t *testing
 
 	headerJSON, err := base64.RawURLEncoding.DecodeString(string(ciphertext[:separator]))
 	require.NoError(t, err)
+	expectedHeaderJSON := fmt.Sprintf(
+		`{"provider":"oci","crypt":%q,"keyId":"%s","keyVersionId":"%s","cryptoEndpoint":"%s","algorithm":"RSA_OAEP_SHA_256"}`,
+		version.VERSION, responseKeyID, responseKeyVersionID, testCryptoEndpoint,
+	)
+	assert.Equal(t, expectedHeaderJSON, string(headerJSON), "header JSON field names and order are part of the on-disk format")
 	var rawHeader map[string]any
 	require.NoError(t, json.Unmarshal(headerJSON, &rawHeader))
 	assert.Equal(t, map[string]any{
